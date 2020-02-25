@@ -82,7 +82,7 @@ Course parseCourse(const CSVRow &row);
 int findCourseIndexById(const Courses &courses, CourseId id);
 Session parseSession(std::string dayOfWeek, std::string start, std::string end);
 Prerequisites parsePrerequisites(std::string _prerequisites);
-Time parseTime(std::string _time); // time format is HH:MM
+Time parseTime(std::string _time);
 Student parseCourseGrades(const CSVData &data);
 void print(const Time &time, std::ostream &stream);
 void print(const Session &session, std::ostream &stream);
@@ -307,9 +307,9 @@ void print(const Time &time, std::ostream &stream = std::cout)
 void print(const Session &session, std::ostream &stream = std::cout)
 {
     stream << session.weekDay << ' ';
-    print(session.start);
+    print(session.start, stream);
     stream << ' ';
-    print(session.end);
+    print(session.end, stream);
 }
 
 void print(const Course &course, std::ostream &stream = std::cout, bool withDetails = false)
@@ -325,7 +325,7 @@ void print(const Course &course, std::ostream &stream = std::cout, bool withDeta
         stream << '\t' << course.name << "\t\t";
         for (auto &&session : course.sessions)
         {
-            print(session);
+            print(session, stream);
             stream << ' ';
         }
     }
