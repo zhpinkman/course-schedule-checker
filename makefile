@@ -6,7 +6,7 @@ INCLUDE_DIR = include
 SOURCES = ${SRC_DIR}/%.cpp
 OBJECTS = ${OBJ_DIR}/%.o
 
-CFLAGS = -std=c++11 -Wall -pedantic -pthread -I${INCLUDE_DIR}
+CFLAGS = -std=c++11 -Wall -pedantic -I${INCLUDE_DIR}
 CC = g++ ${CFLAGS}
 
 OBJS = $(patsubst ${SOURCES}, ${OBJECTS}, $(wildcard ${SRC_DIR}/*.cpp))
