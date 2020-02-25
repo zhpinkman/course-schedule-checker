@@ -30,7 +30,9 @@ Courses parseCourses(const CSVData &data)
         if (courseIndex != NOT_FOUND)
         {
             courses[courseIndex].sessions.push_back(newCourse.sessions.front());
-        } else {
+        }
+        else
+        {
             courses.push_back(newCourse);
         }
     }
@@ -102,7 +104,6 @@ Prerequisites parsePrerequisites(std::string _prerequisites)
         {
             prerequisites.push_back(id);
         }
-
     }
     return prerequisites;
 }
@@ -124,7 +125,8 @@ Student parseCourseGrades(const CSVData &data)
 
     for (auto &&row : data)
     {
-        student.courseGrades.insert(parseCourseGrade(row));
+        CourseGrade courseGrade = parseCourseGrade(row);
+        student.courseGrades[courseGrade.first] = courseGrade.second;
     }
 
     return student;
@@ -153,18 +155,22 @@ void print(Session session)
     print(session.end);
 }
 
-void print(Course course)
+void print(Course course, bool withDetails = false)
 {
-    std::cout << course.id << ' ' << course.units << ' ';
-    for (auto &&prerequisite : course.prerequisites)
+    std::cout << course.id;
+    if (withDetails)
     {
-        std::cout << prerequisite << ' ';
-    }
-    std::cout << '\t' << course.name << "\t\t";
-    for (auto &&session : course.sessions)
-    {
-        print(session);
-        std::cout << ' ';
+        std::cout << ' ' << course.units << ' ';
+        for (auto &&prerequisite : course.prerequisites)
+        {
+            std::cout << prerequisite << ' ';
+        }
+        std::cout << '\t' << course.name << "\t\t";
+        for (auto &&session : course.sessions)
+        {
+            print(session);
+            std::cout << ' ';
+        }
     }
     std::cout << std::endl;
 }
@@ -214,7 +220,7 @@ bool canGetCourse(Student student, Course course)
 
     for (auto &&prerequisite : course.prerequisites)
     {
-        if(!hasPassed(student, prerequisite))
+        if (!hasPassed(student, prerequisite))
         {
             return false;
         }
@@ -236,23 +242,34 @@ Courses findAvailableCourses(const Courses &courses, Student student)
     return availableCourses;
 }
 
+bool compareCourseByName(const Course &lhs, const Course &rhs)
+{
+    return (lhs.name != rhs.name && lhs.name < rhs.name) || lhs.id < rhs.id;
+}
+
+bool compareCourseByUnitsAndName(const Course &lhs, const Course &rhs)
+{
+    return (lhs.units != rhs.units && lhs.units < rhs.units) || compareCourseByName(lhs, rhs);
+}
+
+Courses findNextTermCourses(const Courses &availableCourses, Grade currentGPA)
+{
+    Courses nextTermCourses;
+    std::cout << currentGPA << std::endl;
+    return nextTermCourses;
+}
+
 void runBoostan(const Courses &courses, Student student, int step)
 {
-    // print(courses);
-
-    // for (auto &&courseGrade : student.courseGrades)
-    // {
-    //     CourseId id = courseGrade.first;
-    //     Grade grade = courseGrade.second;
-
-    //     std::cout << id << '\t' << grade << std::endl;
-    // }
-
-    std::cout << calculateGPA(courses, student) << std::endl;
-
-    const Courses availableCourses = findAvailableCourses(courses, student);
+    Courses availableCourses = findAvailableCourses(courses, student);
     if (step == 1)
     {
+        std::sort(availableCourses.begin(), availableCourses.end(), compareCourseByName);
         print(availableCourses);
+    }
+    else if (step == 2)
+    {
+        std::sort(availableCourses.begin(), availableCourses.end(), compareCourseByUnitsAndName);
+        print(findNextTermCourses(availableCourses, calculateGPA(courses, student)));
     }
 }
