@@ -9,7 +9,7 @@
 const char CSV_DELIMITER = ',';
 const char PREREQUISITE_DELIMITER = '-';
 
-const int NOT_FOUND = -1;
+const int COURSE_NOT_FOUND = -1;
 const float GROWTH_RATE = 1.05;
 
 const std::string COLUMN_KEY_ID = "Id";
@@ -65,7 +65,6 @@ struct Course
 };
 
 typedef std::vector<Course> Courses;
-typedef std::pair<CourseId, Grade> CourseGrade;
 
 struct Student
 {
@@ -85,7 +84,6 @@ Session parseSession(std::string dayOfWeek, std::string start, std::string end);
 Prerequisites parsePrerequisites(std::string _prerequisites);
 Time parseTime(std::string _time); // time format is HH:MM
 Student parseCourseGrades(const CSVData &data);
-CourseGrade parseCourseGrade(const CSVRow &row);
 void print(const Time &time, std::ostream &stream);
 void print(const Session &session, std::ostream &stream);
 void print(const Course &course, std::ostream &stream, bool withDetails);
@@ -204,7 +202,7 @@ Courses parseCourses(const CSVData &data)
     {
         Course newCourse = parseCourse(row);
         int courseIndex = findCourseIndexById(courses, newCourse.id);
-        if (courseIndex != NOT_FOUND)
+        if (courseIndex != COURSE_NOT_FOUND)
         {
             courses[courseIndex].sessions.push_back(newCourse.sessions.front());
         }
@@ -245,7 +243,7 @@ int findCourseIndexById(const Courses &courses, CourseId id)
             return i;
         }
     }
-    return NOT_FOUND;
+    return COURSE_NOT_FOUND;
 }
 
 Session parseSession(std::string dayOfWeek, std::string start, std::string end)
@@ -292,21 +290,13 @@ Student parseCourseGrades(const CSVData &data)
 
     for (auto &&row : data)
     {
-        CourseGrade courseGrade = parseCourseGrade(row);
-        student.courseGrades[courseGrade.first] = courseGrade.second;
+        CourseId id = std::stoi(row.at(COLUMN_KEY_ID));
+        Grade grade = std::stof(row.at(COLUMN_KEY_GRADE));
+
+        student.courseGrades[id] = grade;
     }
 
     return student;
-}
-
-CourseGrade parseCourseGrade(const CSVRow &row)
-{
-    CourseGrade courseGrade;
-
-    courseGrade.first = std::stoi(row.at(COLUMN_KEY_ID));
-    courseGrade.second = std::stof(row.at(COLUMN_KEY_GRADE));
-
-    return courseGrade;
 }
 
 void print(const Time &time, std::ostream &stream = std::cout)
