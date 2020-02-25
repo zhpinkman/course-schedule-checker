@@ -23,9 +23,6 @@ int main(int argc, char const *argv[])
     Courses courses = parseCourses(coursesData);
     Student student = parseCourseGrades(CourseGradesData);
 
-    // TODO: define < operator for course
-    // std::sort(courses.begin(), courses.end());
-
     runBoostan(courses, student, step);
 
     return 0;
