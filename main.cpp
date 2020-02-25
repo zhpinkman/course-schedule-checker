@@ -446,7 +446,8 @@ bool isBefore(Time t1, Time t2)
 
 bool hasOverlap(const Session &session, const Session &newSession)
 {
-    return isBefore(session.start, newSession.end) &&
+    return session.weekDay == newSession.weekDay &&
+           isBefore(session.start, newSession.end) &&
            isBefore(newSession.start, session.end);
 }
 
