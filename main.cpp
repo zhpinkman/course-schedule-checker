@@ -7,6 +7,8 @@
 #include <map>
 
 const char CSV_DELIMITER = ',';
+const char SCHEDULE_DELIMITER = '/';
+const char SESSION_DELIMITER = '-';
 const char PREREQUISITE_DELIMITER = '-';
 
 const int COURSE_NOT_FOUND = -1;
@@ -15,9 +17,7 @@ const float GROWTH_RATE = 1.05;
 const std::string COLUMN_KEY_ID = "Id";
 const std::string COLUMN_KEY_NAME = "Name";
 const std::string COLUMN_KEY_UNITS = "Units";
-const std::string COLUMN_KEY_DOW = "DoW";
-const std::string COLUMN_KEY_START = "Start";
-const std::string COLUMN_KEY_END = "End";
+const std::string COLUMN_KEY_SCHEDULE = "Schedule";
 const std::string COLUMN_KEY_PREREQUISITES = "Prerequisites";
 const std::string COLUMN_KEY_GRADE = "Grade";
 
@@ -54,13 +54,14 @@ struct Session
 typedef int CourseId;
 typedef float Grade;
 typedef std::vector<CourseId> Prerequisites;
+typedef std::vector<Session> Sessions;
 
 struct Course
 {
     CourseId id;
     std::string name;
     int units;
-    std::vector<Session> sessions;
+    Sessions sessions;
     Prerequisites prerequisites;
 };
 
@@ -77,10 +78,11 @@ CSVRow parseCSVRow(std::string rawRow, CSVHeader header);
 
 WeekDay getWeekDayFromString(std::string weekDay);
 int maxAllowedUnits(Grade gpa);
+int findCourseIndexById(const Courses &courses, CourseId id);
 Courses parseCourses(const CSVData &data);
 Course parseCourse(const CSVRow &row);
-int findCourseIndexById(const Courses &courses, CourseId id);
-Session parseSession(std::string dayOfWeek, std::string start, std::string end);
+Sessions parseSessions(std::string _sessions);
+Session parseSession(std::string _session);
 Prerequisites parsePrerequisites(std::string _prerequisites);
 Time parseTime(std::string _time);
 Student parseCourseGrades(const CSVData &data);
@@ -194,46 +196,6 @@ int maxAllowedUnits(Grade gpa)
     return gpa >= 17 ? 24 : 20;
 }
 
-Courses parseCourses(const CSVData &data)
-{
-    Courses courses;
-
-    for (auto &&row : data)
-    {
-        Course newCourse = parseCourse(row);
-        int courseIndex = findCourseIndexById(courses, newCourse.id);
-        if (courseIndex != COURSE_NOT_FOUND)
-        {
-            courses[courseIndex].sessions.push_back(newCourse.sessions.front());
-        }
-        else
-        {
-            courses.push_back(newCourse);
-        }
-    }
-
-    return courses;
-}
-
-Course parseCourse(const CSVRow &row)
-{
-    Course course;
-
-    course.id = std::stoi(row.at(COLUMN_KEY_ID));
-    course.name = row.at(COLUMN_KEY_NAME);
-    course.units = std::stoi(row.at(COLUMN_KEY_UNITS));
-    course.sessions.push_back(
-        parseSession(
-            row.at(COLUMN_KEY_DOW),
-            row.at(COLUMN_KEY_START),
-            row.at(COLUMN_KEY_END)
-        )
-    );
-    course.prerequisites = parsePrerequisites(row.at(COLUMN_KEY_PREREQUISITES));
-
-    return course;
-}
-
 int findCourseIndexById(const Courses &courses, CourseId id)
 {
     for (size_t i = 0; i < courses.size(); i++)
@@ -246,10 +208,55 @@ int findCourseIndexById(const Courses &courses, CourseId id)
     return COURSE_NOT_FOUND;
 }
 
-Session parseSession(std::string dayOfWeek, std::string start, std::string end)
+Courses parseCourses(const CSVData &data)
 {
-    Session session;
+    Courses courses;
 
+    for (auto &&row : data)
+    {
+        courses.push_back(parseCourse(row));
+    }
+
+    return courses;
+}
+
+Course parseCourse(const CSVRow &row)
+{
+    Course course;
+
+    course.id = std::stoi(row.at(COLUMN_KEY_ID));
+    course.name = row.at(COLUMN_KEY_NAME);
+    course.units = std::stoi(row.at(COLUMN_KEY_UNITS));
+    course.sessions = parseSessions(row.at(COLUMN_KEY_SCHEDULE));
+    course.prerequisites = parsePrerequisites(row.at(COLUMN_KEY_PREREQUISITES));
+
+    return course;
+}
+
+Sessions parseSessions(std::string _sessions)
+{
+    Sessions sessions;
+    std::stringstream sessionsStream(_sessions);
+    std::string session;
+
+    while (std::getline(sessionsStream, session, SCHEDULE_DELIMITER))
+    {
+        sessions.push_back(parseSession(session));
+    }
+
+    return sessions;
+}
+
+Session parseSession(std::string _session)
+{
+    std::stringstream sessionStream(_session);
+    std::string dayOfWeek, start, end;
+
+    std::getline(sessionStream, dayOfWeek, SESSION_DELIMITER);
+    std::getline(sessionStream, start, SESSION_DELIMITER);
+    std::getline(sessionStream, end, SESSION_DELIMITER);
+
+    Session session;
     session.weekDay = getWeekDayFromString(dayOfWeek);
     session.start = parseTime(start);
     session.end = parseTime(end);
@@ -449,11 +456,11 @@ bool hasOverlap(const Course &course, const Course &newCourse)
         {
             if (hasOverlap(session, newSession))
             {
-                return false;
+                return true;
             }
         }
     }
-    return true;
+    return false;
 }
 
 bool hasOverlap(const Courses &nextTermCourses, const Course &newCourse)
