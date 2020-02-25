@@ -72,7 +72,6 @@ struct Student
     std::map<CourseId, Grade> courseGrades;
 };
 
-
 CSVData readCSVFile(std::string fileName);
 CSVHeader parseCSVHeader(std::string row);
 CSVRow parseCSVRow(std::string rawRow, CSVHeader header);
@@ -100,6 +99,10 @@ Courses findAvailableCourses(const Courses &courses, Student student);
 bool compareCourseByName(const Course &lhs, const Course &rhs);
 bool compareCourseByUnitsAndName(const Course &lhs, const Course &rhs);
 int calculateNumberOfUnits(const Courses &courses);
+bool isBefore(Time t1, Time t2);
+bool hasOverlap(const Session &session, const Session &newSession);
+bool hasOverlap(const Course &course, const Course &newCourse);
+bool hasOverlap(const Courses &nextTermCourses, const Course &newCourse);
 bool canTakeCourse(const Courses &nextTermCourses, Grade currentGPA, Course course);
 Courses findNextTermCourses(const Courses &availableCourses, Grade currentGPA);
 bool hasPassedAllCourses(const Courses &courses, Student student);
@@ -128,7 +131,6 @@ int main(int argc, char const *argv[])
 
     return 0;
 }
-
 
 CSVData readCSVFile(std::string fileName)
 {
@@ -226,7 +228,9 @@ Course parseCourse(const CSVRow &row)
         parseSession(
             row.at(COLUMN_KEY_DOW),
             row.at(COLUMN_KEY_START),
-            row.at(COLUMN_KEY_END)));
+            row.at(COLUMN_KEY_END)
+        )
+    );
     course.prerequisites = parsePrerequisites(row.at(COLUMN_KEY_PREREQUISITES));
 
     return course;
@@ -435,24 +439,59 @@ int calculateNumberOfUnits(const Courses &courses)
     return result;
 }
 
+bool isBefore(Time t1, Time t2)
+{
+    return (t1.hour == t2.hour && t1.minute < t2.minute) || t1.hour < t2.hour;
+}
+
+bool hasOverlap(const Session &session, const Session &newSession)
+{
+    return isBefore(session.start, newSession.end) &&
+           isBefore(newSession.start, session.end);
+}
+
+bool hasOverlap(const Course &course, const Course &newCourse)
+{
+    for (auto &&session : course.sessions)
+    {
+        for (auto &&newSession : newCourse.sessions)
+        {
+            if (hasOverlap(session, newSession))
+            {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+bool hasOverlap(const Courses &nextTermCourses, const Course &newCourse)
+{
+    for (auto &&course : nextTermCourses)
+    {
+        if (hasOverlap(course, newCourse))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 bool canTakeCourse(const Courses &nextTermCourses, Grade currentGPA, Course course)
 {
     int numberOfUnits = calculateNumberOfUnits(nextTermCourses) + course.units;
-    return numberOfUnits <= maxAllowedUnits(currentGPA);
+    return numberOfUnits <= maxAllowedUnits(currentGPA) && !hasOverlap(nextTermCourses, course);
 }
 
 Courses findNextTermCourses(const Courses &availableCourses, Grade currentGPA)
 {
     Courses nextTermCourses;
-    Courses::const_iterator courseIter = availableCourses.begin();
-    while (courseIter != availableCourses.end())
+    for (auto &&course : availableCourses)
     {
-        Course course = *courseIter;
         if (canTakeCourse(nextTermCourses, currentGPA, course))
         {
             nextTermCourses.push_back(course);
         }
-        courseIter++;
     }
     return nextTermCourses;
 }
