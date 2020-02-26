@@ -12,6 +12,7 @@ const char SESSION_DELIMITER = '-';
 const char PREREQUISITE_DELIMITER = '-';
 
 const int COURSE_NOT_FOUND = -1;
+const int PASS_GRADE_THRESHOLD = 10;
 const float GROWTH_RATE = 1.05;
 
 const std::string COLUMN_KEY_ID = "Id";
@@ -377,7 +378,7 @@ Grade calculateGPA(const Courses &courses, Student student)
 
 bool hasPassed(Student student, CourseId id)
 {
-    return student.courseGrades[id] >= 10;
+    return student.courseGrades[id] >= PASS_GRADE_THRESHOLD;
 }
 
 bool hasPassed(Student student, Course course)
@@ -418,12 +419,22 @@ Courses findAvailableCourses(const Courses &courses, Student student)
 
 bool compareCourseByName(const Course &lhs, const Course &rhs)
 {
-    return (lhs.name != rhs.name && lhs.name < rhs.name) || lhs.id < rhs.id;
+    if (lhs.name != rhs.name)
+    {
+        return lhs.name < rhs.name;
+    }
+
+    return lhs.id < rhs.id;
 }
 
 bool compareCourseByUnitsAndName(const Course &lhs, const Course &rhs)
 {
-    return (lhs.units != rhs.units && lhs.units < rhs.units) || compareCourseByName(lhs, rhs);
+    if (lhs.units != rhs.units)
+    {
+        return lhs.units > rhs.units;
+    }
+
+    return compareCourseByName(lhs, rhs);
 }
 
 int calculateNumberOfUnits(const Courses &courses)
@@ -438,7 +449,12 @@ int calculateNumberOfUnits(const Courses &courses)
 
 bool isBefore(Time t1, Time t2)
 {
-    return (t1.hour == t2.hour && t1.minute < t2.minute) || t1.hour < t2.hour;
+    if (t1.hour != t2.hour)
+    {
+        return t1.hour < t2.hour;
+    }
+
+    return t1.minute < t2.minute;
 }
 
 bool hasOverlap(const Session &session, const Session &newSession)
@@ -520,13 +536,18 @@ void runBoostan(const Courses &courses, Student student, int step)
     {
         Courses availableCourses = findAvailableCourses(courses, student);
         std::sort(availableCourses.begin(), availableCourses.end(), compareCourseByName);
+
         print(availableCourses);
     }
     else if (step == 2)
     {
         Courses availableCourses = findAvailableCourses(courses, student);
         std::sort(availableCourses.begin(), availableCourses.end(), compareCourseByUnitsAndName);
-        print(findNextTermCourses(availableCourses, calculateGPA(courses, student)));
+
+        Courses nextTermCourses = findNextTermCourses(availableCourses, calculateGPA(courses, student));
+        std::sort(nextTermCourses.begin(), nextTermCourses.end(), compareCourseByName);
+
+        print(nextTermCourses);
     }
     else if (step == 3)
     {
@@ -535,8 +556,11 @@ void runBoostan(const Courses &courses, Student student, int step)
         {
             Courses availableCourses = findAvailableCourses(courses, student);
             std::sort(availableCourses.begin(), availableCourses.end(), compareCourseByUnitsAndName);
+
             Grade currentGPA = calculateGPA(courses, student);
             Courses nextTermCourses = findNextTermCourses(availableCourses, currentGPA);
+            std::sort(nextTermCourses.begin(), nextTermCourses.end(), compareCourseByName);
+
             passCourses(student, nextTermCourses, currentGPA * GROWTH_RATE);
             printToFile(FILE_PREFIX + std::to_string(iteration++) + FILE_SUFFIX, nextTermCourses);
         }
