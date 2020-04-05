@@ -1,0 +1,18 @@
+#!/bin/bash
+
+CODES_DIR=$1
+JUDGE_EXE="./judge.sh"
+
+"$JUDGE_EXE" 1 "$CODES_DIR/1.cpp"
+
+read -n1 -r -p "Press any key to continue..." key
+
+"$JUDGE_EXE" 2 "$CODES_DIR/2.cpp"
+
+read -n1 -r -p "Press any key to continue..." key
+
+"$JUDGE_EXE" 3 "$CODES_DIR/3.cpp"
+
+read -n1 -r -p "Press any key to continue..." key
+
+code "$CODES_DIR"
